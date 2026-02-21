@@ -1,0 +1,27 @@
+{
+  "name": "@boaz/skills",
+  "version": "1.0.0",
+  "description": "AI 코딩 도구용 스킬 모음 (Claude Code, Codex, Gemini)",
+  "type": "module",
+  "bin": {
+    "boaz-skills": "./bin/cli.mjs"
+  },
+  "files": [
+    "bin",
+    "skills",
+    "README.md"
+  ],
+  "keywords": [
+    "claude-code",
+    "skills",
+    "ai-coding",
+    "notion",
+    "debugging",
+    "hwp"
+  ],
+  "author": "Boaz",
+  "license": "MIT",
+  "dependencies": {
+    "prompts": "^2.4.2"
+  }
+}
