@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "boaz_skills",
+  "project_id": "4801ad78-13f8-4139-82b0-0a3654db62ec"
+}
