@@ -1,0 +1,23 @@
+{
+  "skill_name": "recommend-static-test-tools",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "이 프로젝트에 맞는 eslint 플러그인 추천해줘",
+      "expected_output": "Framework auto-detection from package.json, then structured MUST-HAVE / NICE-TO-HAVE / SKIP report with npm download numbers and real-world adoption evidence",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "/recommend-static-test-tools nestjs",
+      "expected_output": "NestJS-specific report including eslint-plugin-n, eslint-plugin-jest, @darraghor/nestjs-typed, with brocoders/nestjs and nestjs/nest as adoption evidence",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "React Native 프로젝트인데 정적 분석 도구 뭐 쓰면 좋을까?",
+      "expected_output": "RN/Expo report mentioning eslint-config-expo, testing-library, jest plugin, react-hooks upgrade to v6+, with Bluesky/Expensify as adoption evidence. Should flag eslint-plugin-react-compiler as deprecated",
+      "files": []
+    }
+  ]
+}

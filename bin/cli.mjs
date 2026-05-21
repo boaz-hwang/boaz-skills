@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { fileURLToPath } from 'url';
-import prompts from 'prompts';
+import { intro, outro, multiselect, confirm, log, cancel, isCancel } from '@clack/prompts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SKILLS_DIR = path.join(__dirname, '..', 'skills');
@@ -22,6 +22,14 @@ const SKILL_META = {
     name: 'read-hwp',
     description: 'HWP(한글) 파일을 hwp5html로 텍스트 변환하는 파이프라인',
   },
+  'modify-hwpx': {
+    name: 'modify-hwpx',
+    description: 'HWPX(한글) 파일 수정 — @p.e.c/hwpx-mcp MCP 서버 기반 편집',
+  },
+  'recommend-static-test-tools': {
+    name: 'recommend-static-test-tools',
+    description: '프레임워크 감지 → ESLint 플러그인/정적 분석 도구 추천 (설치 없이 보고서만 출력, 자기개선 루프)',
+  },
 };
 
 const TARGETS = {
@@ -30,9 +38,16 @@ const TARGETS = {
     dir: path.join(os.homedir(), '.claude', 'skills'),
     detect: () => fs.existsSync(path.join(os.homedir(), '.claude')),
   },
-  // 향후 확장
-  // 'codex': { label: 'Codex', dir: ..., detect: () => ... },
-  // 'gemini': { label: 'Gemini', dir: ..., detect: () => ... },
+  'codex': {
+    label: 'Codex CLI',
+    dir: path.join(process.env.CODEX_HOME || path.join(os.homedir(), '.codex'), 'skills'),
+    detect: () => fs.existsSync(process.env.CODEX_HOME || path.join(os.homedir(), '.codex')),
+  },
+  'gemini': {
+    label: 'Gemini CLI',
+    dir: path.join(os.homedir(), '.gemini', 'skills'),
+    detect: () => fs.existsSync(path.join(os.homedir(), '.gemini')),
+  },
 };
 
 function getAvailableSkills() {
@@ -50,24 +65,21 @@ function copySkill(skillName, targetDir) {
 
 async function main() {
   const args = process.argv.slice(2);
-
-  console.log('');
-  console.log('  ⚡ @boaz/skills');
-  console.log('  AI 코딩 도구용 스킬 설치기');
-  console.log('');
-
   const availableSkills = getAvailableSkills();
 
   // --list: 스킬 목록 출력
   if (args.includes('--list')) {
-    console.log('  사용 가능한 스킬:');
+    console.log('\n  @p.e.c/boaz-skills\n');
     for (const skill of availableSkills) {
       const meta = SKILL_META[skill];
-      console.log(`    - ${skill}: ${meta?.description || ''}`);
+      console.log(`  ${skill}`);
+      if (meta?.description) console.log(`    ${meta.description}`);
     }
     console.log('');
     process.exit(0);
   }
+
+  intro('@p.e.c/boaz-skills');
 
   // 설치 대상 감지
   const detectedTargets = Object.entries(TARGETS)
@@ -75,49 +87,64 @@ async function main() {
     .map(([key, t]) => ({ key, ...t }));
 
   if (detectedTargets.length === 0) {
-    console.log('  ⚠ 지원되는 AI 코딩 도구를 찾을 수 없습니다.');
-    console.log('  현재 지원: Claude Code (~/.claude/)');
+    log.error('지원되는 AI 코딩 도구를 찾을 수 없습니다.');
+    log.info('지원: Claude Code (~/.claude/), Codex CLI (~/.codex/), Gemini CLI (~/.gemini/)');
     process.exit(1);
   }
 
-  console.log(`  감지된 도구: ${detectedTargets.map(t => t.label).join(', ')}`);
-  console.log('');
+  log.info(`감지된 도구: ${detectedTargets.map(t => t.label).join(', ')}`);
 
-  // --all: 전체 설치 (대화형 건너뛰기)
   const installAll = args.includes('--all');
 
+  // 설치 대상 도구 선택
+  let selectedTargets;
+
+  if (installAll || detectedTargets.length === 1) {
+    selectedTargets = detectedTargets;
+  } else {
+    const targetResult = await multiselect({
+      message: '설치할 도구를 선택하세요',
+      options: detectedTargets.map(t => ({
+        label: t.label,
+        value: t,
+      })),
+      initialValues: detectedTargets,
+    });
+
+    if (isCancel(targetResult)) {
+      cancel('취소되었습니다.');
+      process.exit(0);
+    }
+
+    selectedTargets = targetResult;
+  }
+
+  // 스킬 선택
   let selectedSkills;
 
   if (installAll) {
     selectedSkills = availableSkills;
   } else {
-    const choices = availableSkills.map(skill => ({
-      title: skill,
-      description: SKILL_META[skill]?.description || '',
-      value: skill,
-      selected: true,
-    }));
-
-    const response = await prompts({
-      type: 'multiselect',
-      name: 'skills',
-      message: '설치할 스킬을 선택하세요 (Space로 토글, Enter로 확인)',
-      choices,
-      hint: '- 방향키로 이동, Space로 선택/해제',
-      instructions: false,
+    const skillResult = await multiselect({
+      message: '설치할 스킬을 선택하세요',
+      options: availableSkills.map(skill => ({
+        label: skill,
+        hint: SKILL_META[skill]?.description || '',
+        value: skill,
+      })),
+      initialValues: availableSkills,
     });
 
-    if (!response.skills || response.skills.length === 0) {
-      console.log('  선택된 스킬이 없습니다. 종료합니다.');
+    if (isCancel(skillResult)) {
+      cancel('취소되었습니다.');
       process.exit(0);
     }
 
-    selectedSkills = response.skills;
+    selectedSkills = skillResult;
   }
 
   // 설치 실행
-  for (const target of detectedTargets) {
-    // 디렉토리 생성
+  for (const target of selectedTargets) {
     fs.mkdirSync(target.dir, { recursive: true });
 
     for (const skill of selectedSkills) {
@@ -125,27 +152,23 @@ async function main() {
       const exists = fs.existsSync(destPath);
 
       if (exists && !installAll) {
-        const { overwrite } = await prompts({
-          type: 'confirm',
-          name: 'overwrite',
-          message: `${skill}이(가) 이미 설치되어 있습니다. 덮어쓸까요?`,
-          initial: true,
+        const overwrite = await confirm({
+          message: `${skill} 이미 설치됨. 덮어쓸까요?`,
+          initialValue: true,
         });
 
-        if (!overwrite) {
-          console.log(`  ⏭ ${skill} 건너뜀`);
+        if (isCancel(overwrite) || !overwrite) {
+          log.warn(`${skill} 건너뜀`);
           continue;
         }
       }
 
       copySkill(skill, target.dir);
-      console.log(`  ✓ ${skill} → ${target.label}`);
+      log.success(`${skill} → ${target.label}`);
     }
   }
 
-  console.log('');
-  console.log('  설치 완료!');
-  console.log('');
+  outro('설치 완료!');
 }
 
 main().catch(err => {

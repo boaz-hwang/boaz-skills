@@ -1,10 +1,10 @@
 {
-  "name": "@boaz/skills",
-  "version": "1.0.0",
+  "name": "@p.e.c/boaz-skills",
+  "version": "1.5.1",
   "description": "AI 코딩 도구용 스킬 모음 (Claude Code, Codex, Gemini)",
   "type": "module",
   "bin": {
-    "boaz-skills": "./bin/cli.mjs"
+    "boaz-skills": "bin/cli.mjs"
   },
   "files": [
     "bin",
@@ -13,15 +13,22 @@
   ],
   "keywords": [
     "claude-code",
+    "codex",
+    "gemini-cli",
     "skills",
     "ai-coding",
     "notion",
     "debugging",
-    "hwp"
+    "hwp",
+    "hwpx",
+    "hwpx-mcp",
+    "eslint",
+    "static-analysis",
+    "linting"
   ],
   "author": "Boaz",
   "license": "MIT",
   "dependencies": {
-    "prompts": "^2.4.2"
+    "@clack/prompts": "^1.1.0"
   }
 }
